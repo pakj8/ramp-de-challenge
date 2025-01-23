@@ -1,27 +1,36 @@
 import classNames from "classnames"
-import { useRef } from "react"
-import { InputCheckboxComponent } from "./types"
 
-export const InputCheckbox: InputCheckboxComponent = ({ id, checked = false, disabled, onChange }) => {
-  const { current: inputId } = useRef(`RampInputCheckbox-${id}`)
+export interface InputCheckboxComponentProps {
+  id: string
+  checked?: boolean
+  disabled?: boolean
+  onChange: (newValue: boolean) => void
+}
 
+export const InputCheckbox: React.FC<InputCheckboxComponentProps> = ({
+  id,
+  checked = false,
+  disabled,
+  onChange,
+}) => {
   return (
-    <div className="RampInputCheckbox--container" data-testid={inputId}>
+    <div className="RampInputCheckbox--container" data-testid={`RampInputCheckbox-${id}`}>
       <label
+        htmlFor={id}
         className={classNames("RampInputCheckbox--label", {
           "RampInputCheckbox--label-checked": checked,
           "RampInputCheckbox--label-disabled": disabled,
         })}
       />
       <input
-        id={inputId}
+        id={id}
         type="checkbox"
         className="RampInputCheckbox--input"
         checked={checked}
         disabled={disabled}
-        onChange={() => {
+        onChange={(event) => {
           if (!disabled) {
-            onChange(!checked)
+            onChange(event.target.checked) // Use event.target.checked to get the new value
           }
         }}
       />
