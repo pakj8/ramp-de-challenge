@@ -1,5 +1,5 @@
+import React, { useCallback, useState, useEffect } from "react"
 import Downshift from "downshift"
-import { useCallback, useState } from "react"
 import classNames from "classnames"
 import { DropdownPosition, GetDropdownPositionFn, InputSelectOnChange, InputSelectProps } from "./types"
 
@@ -13,9 +13,6 @@ export function InputSelect<TItem>({
   loadingLabel,
 }: InputSelectProps<TItem>) {
   const [selectedValue, setSelectedValue] = useState<TItem | null>(defaultValue ?? null)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [dropdownAnchor, setDropdownAnchor] = useState<HTMLElement | null>(null)
-
   const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({
     top: 0,
     left: 0,
@@ -32,6 +29,58 @@ export function InputSelect<TItem>({
     },
     [consumerOnChange]
   )
+
+  const getDropdownPosition = useCallback<GetDropdownPositionFn>((target) => {
+    if (target instanceof Element) {
+      const { top, left } = target.getBoundingClientRect()
+      const { scrollY } = window
+      return {
+        top: scrollY + top + 63,
+        left,
+      }
+    }
+
+    return { top: 0, left: 0 }
+  }, [])
+
+  const updateDropdownPosition = useCallback(
+    (target: EventTarget | null) => {
+      if (target) {
+        const position = getDropdownPosition(target)
+        setDropdownPosition(position)
+      }
+    },
+    [getDropdownPosition]
+  )
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const activeElement = document.activeElement as HTMLElement
+      if (activeElement && activeElement.classList.contains("RampInputSelect--input")) {
+        updateDropdownPosition(activeElement)
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll)
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+    }
+  }, [updateDropdownPosition])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const activeElement = document.activeElement as HTMLElement
+      if (activeElement && activeElement.classList.contains("RampInputSelect--input")) {
+        updateDropdownPosition(activeElement)
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll)
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+    }
+  }, [updateDropdownPosition])
 
   return (
     <Downshift<TItem>
@@ -62,9 +111,7 @@ export function InputSelect<TItem>({
             <div
               className="RampInputSelect--input"
               onClick={(event) => {
-                const target = event.currentTarget
-                setDropdownAnchor(target)
-                setDropdownPosition(getDropdownPosition(target))
+                updateDropdownPosition(event.target)
                 toggleProps.onClick(event)
               }}
             >
@@ -76,7 +123,12 @@ export function InputSelect<TItem>({
                 "RampInputSelect--dropdown-container-opened": isOpen,
               })}
               {...getMenuProps()}
-              style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+              style={{
+                position: "absolute",
+                top: dropdownPosition.top,
+                left: dropdownPosition.left,
+                zIndex: 10,
+              }}
             >
               {renderItems()}
             </div>
@@ -120,16 +172,4 @@ export function InputSelect<TItem>({
       }}
     </Downshift>
   )
-}
-
-const getDropdownPosition: GetDropdownPositionFn = (target) => {
-  if (target instanceof Element) {
-    const { top, left, height } = target.getBoundingClientRect()
-    const { scrollY } = window
-    return {
-      top: scrollY + top + height,
-      left,
-    }
-  }
-  return { top: 0, left: 0 }
 }
